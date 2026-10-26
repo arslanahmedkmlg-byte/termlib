@@ -525,12 +525,13 @@ internal class InlineImageStore(var limits: InlineImageLimits, private val handl
             maintenance.execute {
                 synchronized(this) {
                     decodedReservation -= reservation
-                    asset.pending = false
+                    // Only signal completion once the bitmap and state are published.
                     // Even a stale decoder result owns native memory until GC.
                     (drawable ?: movie)?.let { retainResource(it, nativeBytes) }
                     if (assets[asset.id] === asset && generation == asset.generation) {
                         if (decoded == null && drawable == null) {
                             remove(asset.id)
+                            asset.pending = false
                             return@synchronized
                         }
                         retain(decoded)
@@ -543,6 +544,7 @@ internal class InlineImageStore(var limits: InlineImageLimits, private val handl
                     } else {
                         decoded?.recycle()
                     }
+                    asset.pending = false
                 }
             }
         }
@@ -605,7 +607,7 @@ internal class ImageAsset(val id: Long, val number: Long?, private val store: In
     @Suppress("DEPRECATION")
     var movie: Movie? = null
     var decoderBytes = 0L
-    var pending = false
+    @Volatile var pending = false
     var targetWidth = 0
     var targetHeight = 0
     var lastDraw = 0L
