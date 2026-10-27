@@ -244,6 +244,9 @@ sealed interface TerminalEmulator : AutoCloseable {
      */
     fun getSnapshotLineTexts(): List<String>
 
+    /** All visible and scrollback lines for in-app text search. */
+    fun getSearchableLineTexts(): List<String>
+
     /**
      * True while the emulator is actually rendering the alternate screen
      * buffer. Distinct from byte-stream scanners (Haven's MouseModeTracker)
@@ -663,6 +666,11 @@ internal class TerminalEmulatorImpl(
     internal val snapshot: StateFlow<TerminalSnapshot> = _snapshot.asStateFlow()
 
     override fun getSnapshotLineTexts(): List<String> = _snapshot.value.lines.map { it.text }
+
+    override fun getSearchableLineTexts(): List<String> {
+        val snapshot = _snapshot.value
+        return (snapshot.scrollback + snapshot.lines).map { it.text }
+    }
 
     // Snapshot-derived (not the raw altScreenActive var) so it is safe to
     // read from the UI thread; at most one frame stale, which is fine for
